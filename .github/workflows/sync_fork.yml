@@ -1,0 +1,30 @@
+name: Sync fork with upstream
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 14 * * *' # Daily at ~16:00 UTC+2
+
+permissions: read-all  # Required by https://github.com/ossf/scorecard/blob/e23b8ad91fd6a64a0a971ca4fc0a4d1650725615/docs/checks.md#token-permissions
+
+jobs:
+  sync-fork:
+    if: ${{ github.repository == 'mlukasze/openvino.genai' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Sync default branch
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { data: repository } = await github.rest.repos.get(context.repo);
+            const branch = repository.default_branch;
+            const response = await github.request('POST /repos/{owner}/{repo}/merge-upstream', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch,
+            });
+
+            core.info(`Sync response for ${branch}: ${response.data.message}`);
