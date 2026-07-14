@@ -115,6 +115,24 @@ Speech recognition pipeline does **not** support LoRA adapters.
 
 <WhisperModelsTable />
 
+:::danger Not Supported: NeMo-Conformer-style ASR (e.g. cohere_asr)
+`WhisperPipeline` requires the Whisper encoder/decoder contract: a fixed-size,
+30s-chunked `input_features` tensor with no explicit `length` input, a
+Whisper-style `generation_config.json` (`max_length`, `lang_to_id`, etc.), and a
+log10 mel-spectrogram with no per-feature normalization.
+
+Architectures built around a NeMo-style `FilterbankFeatures`/`ConformerEncoder`
+(for example `cohere_asr`, `CohereAsrForConditionalGeneration`) are natively
+variable-length: their own feature extractor emits an explicit `length` tensor
+consumed by the encoder for internal masking, applies dither and a
+per-feature (per-mel-bin) mean/variance normalization pass, and does not use
+Whisper's 30s chunking convention. These are incompatible with `WhisperPipeline`
+as-is and are **not supported**. See
+[omega#12](https://github.com/openvinotoolkit/omega/issues/12) for the
+investigation and gap analysis; enabling this family requires a new pipeline
+type (or a substantial `WhisperPipeline` extension) rather than a config change.
+:::
+
 ## Speech Generation Models
 
 :::info LoRA Support
